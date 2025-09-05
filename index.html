@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SARC-F／SARC-CalF 肌少症自評工具</title>
+  <style>
+    :root{
+      --bg:#f6f7fb; /* 淺色背景 */
+      --text:#111;  /* 深色文字 */
+      --muted:#666;
+      --primary:#2f6fed;
+      --ok:#1a7f37;
+      --warn:#b58100;
+      --danger:#b42318;
+      --card:#ffffff;
+      --shadow:0 10px 24px rgba(16,24,40,0.08);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"; margin:0; color:var(--text); background:var(--bg);}
+    .wrap{max-width:960px; margin:24px auto 48px; padding:0 16px}
+    header{margin:8px 0 16px}
+    h1{font-size: clamp(22px, 3vw, 40px); margin:0 0 6px}
+    .sub{color:var(--muted); line-height:1.6}
+
+    .card{background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px 18px; margin:14px 0}
+    .q-title{font-weight:700; margin:0 0 8px; font-size:18px}
+    .hint{color:var(--muted); font-size:16px; margin:4px 0 10px}
+
+    .gradientbar{height:10px; border-radius:999px; background: linear-gradient(90deg,#37c978,#ffcf3d,#ff6b6b); margin:6px 0 12px}
+
+    .options{display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:10px}
+    .opt{position:relative}
+    .opt input{position:absolute; inset:0; opacity:0}
+    .opt label{display:block; border:1.5px solid #e5e7eb; border-radius:12px; padding:12px; text-align:center; cursor:pointer; transition: all .18s ease}
+    .opt input:focus+label{outline:3px solid #e0ebff}
+    .opt input:checked+label{border-color:var(--primary); box-shadow: 0 0 0 4px rgba(47,111,237,.12)}
+
+    .row{display:grid; grid-template-columns: 1fr 1fr; gap:12px}
+    @media (max-width:720px){ .row{grid-template-columns: 1fr} }
+
+    .field{display:flex; gap:8px; align-items:center}
+    .field input[type="number"], .field select{width:100%; padding:10px 12px; border-radius:12px; border:1.5px solid #e5e7eb; font-size:16px}
+
+    .actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:12px}
+    button{appearance:none; border:0; border-radius:12px; padding:12px 16px; font-weight:700; cursor:pointer}
+    .primary{background:var(--primary); color:#fff}
+    .ghost{background:#eef2ff; color:#1e2a5e}
+    .subtle{background:#eaeef8; color:#223}
+    button:disabled{opacity:.6; cursor:not-allowed}
+
+    .result{display:none; margin-top:14px; padding:16px; border-radius:14px; border:1.5px dashed #d0d7ea; background:#f8faff}
+    .scoreline{font-size:18px; font-weight:800; margin:2px 0}
+    .badge{display:inline-block; padding:4px 10px; border-radius:999px; font-weight:800; font-size:15px}
+    .ok{background:#e7f7ec; color:var(--ok)}
+    .mid{background:#fff6db; color:var(--warn)}
+    .hi{background:#ffe7e6; color:var(--danger)}
+
+    footer{margin:28px 0 0; color:var(--muted); font-size:15px; line-height:1.7}
+    .tiny{font-size:15px; color:#7a7a7a}
+    .hr{height:1px; background:#eceff6; margin:16px 0}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>SARC-F／SARC-CalF 肌少症自評工具</h1>
+      <p class="sub">說明：SARC‑F 有 5 題，每題 0–2 分；總分 ≥4 代表<strong>肌少症高風險</strong>。若輸入「生理性別」與「小腿圍」，系統會計算 SARC‑CalF（在 SARC‑F 基礎上若小腿圍過小加 10 分；男性 &lt;34cm、女性 &lt;33cm）。SARC‑CalF 分數 ≥11 代表<strong>高風險</strong>。</p>
+    </header>
+
+    <div class="card" id="about-you">
+      <div class="q-title">基本資料（<span style="font-weight:600">SARC‑CalF 選填</span>）</div>
+      <div class="row">
+        <div class="field">
+          <label for="sex" class="hint">生理性別：</label>
+        </div>
+        <div class="field">
+          <select id="sex" aria-label="生理性別">
+            <option value="">（未選擇）</option>
+            <option value="male">男性</option>
+            <option value="female">女性</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="field">
+          <label for="calf" class="hint">小腿圍（最粗處，公分）：</label>
+        </div>
+        <div class="field">
+          <input id="calf" type="number" min="10" max="70" step="0.1" placeholder="例如 33.5" aria-label="小腿圍（公分）" />
+        </div>
+      </div>
+      <p class="tiny">測量小撇步：坐姿，膝蓋 90° 放鬆，找出小腿最粗處水平量測；量兩側取較大值。</p>
+    </div>
+
+    <form id="sarcForm" class="card" novalidate>
+      <div class="q">
+        <div class="q-title">1) 抬舉或搬運 10 磅（約 4.5 公斤）的物品是否困難？</div>
+        <div class="gradientbar" aria-hidden="true"></div>
+        <div class="options" role="radiogroup" aria-label="搬運困難程度">
+          <div class="opt"><input type="radio" name="q1" id="q1-0" value="0"><label for="q1-0">不困難😀（0）</label></div>
+          <div class="opt"><input type="radio" name="q1" id="q1-1" value="1"><label for="q1-1">有些困難😅（1）</label></div>
+          <div class="opt"><input type="radio" name="q1" id="q1-2" value="2"><label for="q1-2">非常困難／無法😣（2）</label></div>
+        </div>
+      </div>
+      <div class="hr"></div>
+
+      <div class="q">
+        <div class="q-title">2) 從椅子上站起來是否困難？</div>
+        <div class="gradientbar" aria-hidden="true"></div>
+        <div class="options" role="radiogroup" aria-label="從椅子站起困難程度">
+          <div class="opt"><input type="radio" name="q2" id="q2-0" value="0"><label for="q2-0">不困難😀（0）</label></div>
+          <div class="opt"><input type="radio" name="q2" id="q2-1" value="1"><label for="q2-1">有些困難😅（1）</label></div>
+          <div class="opt"><input type="radio" name="q2" id="q2-2" value="2"><label for="q2-2">非常困難／無法😣（2）</label></div>
+        </div>
+      </div>
+      <div class="hr"></div>
+
+      <div class="q">
+        <div class="q-title">3) 走路是否困難？（如在房間內或短距離）</div>
+        <div class="gradientbar" aria-hidden="true"></div>
+        <div class="options" role="radiogroup" aria-label="走路困難程度">
+          <div class="opt"><input type="radio" name="q3" id="q3-0" value="0"><label for="q3-0">不困難😀（0）</label></div>
+          <div class="opt"><input type="radio" name="q3" id="q3-1" value="1"><label for="q3-1">有些困難😅（1）</label></div>
+          <div class="opt"><input type="radio" name="q3" id="q3-2" value="2"><label for="q3-2">非常困難／無法😣（2）</label></div>
+        </div>
+      </div>
+      <div class="hr"></div>
+
+      <div class="q">
+        <div class="q-title">4) 上樓梯是否困難？</div>
+        <div class="gradientbar" aria-hidden="true"></div>
+        <div class="options" role="radiogroup" aria-label="上樓梯困難程度">
+          <div class="opt"><input type="radio" name="q4" id="q4-0" value="0"><label for="q4-0">不困難😀（0）</label></div>
+          <div class="opt"><input type="radio" name="q4" id="q4-1" value="1"><label for="q4-1">有些困難😅（1）</label></div>
+          <div class="opt"><input type="radio" name="q4" id="q4-2" value="2"><label for="q4-2">非常困難／無法😣（2）</label></div>
+        </div>
+      </div>
+      <div class="hr"></div>
+
+      <div class="q">
+        <div class="q-title">5) 過去一年曾跌倒幾次？</div>
+        <div class="gradientbar" aria-hidden="true"></div>
+        <div class="options" role="radiogroup" aria-label="跌倒次數">
+          <div class="opt"><input type="radio" name="q5" id="q5-0" value="0"><label for="q5-0">0 次😀（0）</label></div>
+          <div class="opt"><input type="radio" name="q5" id="q5-1" value="1"><label for="q5-1">1–3 次😞（1）</label></div>
+          <div class="opt"><input type="radio" name="q5" id="q5-2" value="2"><label for="q5-2">4 次以上😫（2）</label></div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" id="calcBtn" class="primary" disabled>計算分數</button>
+        <button type="reset" class="ghost" id="resetBtn">清除重填</button>
+        <button type="button" class="subtle" id="printBtn">列印／存成 PDF</button>
+      </div>
+
+      <div id="result" class="result" aria-live="polite"></div>
+    </form>
+
+    <footer>
+      <div class="card">
+        <div class="q-title">結果解讀</div>
+        <ul>
+          <li><strong>SARC‑F：</strong>0–3 分＝風險低；<strong>≥4 分＝肌少症高風險</strong>（建議進一步檢查）。</li>
+          <li><strong>SARC‑CalF：</strong>在 SARC‑F 上，若小腿圍偏小（男&lt;34cm／女&lt;33cm）→ 加 10 分；<strong>≥11 分＝高風險</strong>。</li>
+          <li>高風險者建議：安排<strong>握力</strong>、<strong>步行速度</strong>、與 <strong>四肢骨骼肌量（BIA／DXA）</strong>檢測；飲食蛋白質約 <strong>1.0–1.2 g/kg/日</strong>，每週 2–3 次阻力訓練，注意防跌策略與維生素 D；必要時就醫評估。</li>
+        </ul>
+        <p class="tiny">本工具為健康教育用途，不能取代專業醫療診斷。</p>
+      </div>
+    </footer>
+  </div>
+
+<script>
+  const form = document.getElementById('sarcForm');
+  const calcBtn = document.getElementById('calcBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const printBtn = document.getElementById('printBtn');
+  const result = document.getElementById('result');
+
+  const requiredNames = ['q1','q2','q3','q4','q5'];
+
+  function allAnswered(){
+    return requiredNames.every(name => form.querySelector(`input[name="${name}"]:checked`));
+  }
+
+  function updateCalcBtn(){
+    calcBtn.disabled = !allAnswered();
+  }
+
+  form.addEventListener('change', updateCalcBtn);
+  window.addEventListener('DOMContentLoaded', updateCalcBtn);
+
+  calcBtn.addEventListener('click', () => {
+    if(!allAnswered()) return; // safety
+
+    // SARC-F sum
+    let sarcF = requiredNames.reduce((sum, name) => sum + Number(form.querySelector(`input[name="${name}"]:checked`).value), 0);
+
+    // Optional SARC-CalF addition
+    const sex = document.getElementById('sex').value;
+    const calf = parseFloat(document.getElementById('calf').value);
+    let add10 = 0;
+    if(sex && !isNaN(calf)){
+      if((sex === 'male' && calf < 34) || (sex === 'female' && calf < 33)){
+        add10 = 10;
+      }
+    }
+    const sarcCalf = sarcF + add10;
+
+    // Build interpretation
+    const sarcFTag = sarcF >= 4 ? '<span class="badge hi">SARC‑F 高風險 ≥4</span>' : (sarcF >=1 ? '<span class="badge mid">SARC‑F 中等風險</span>' : '<span class="badge ok">SARC‑F 風險低</span>');
+
+    let calfLine = '';
+    if(sex || !isNaN(calf)){
+      if(!sex || isNaN(calf)){
+        calfLine = '<div class="hint">（要計算 SARC‑CalF 請同時填「生理性別」與「小腿圍」。）</div>';
+      } else {
+        const calfJudgement = add10 === 10 ? '<span class="badge hi">小腿圍偏小 </span>' : '<span class="badge ok">小腿圍沒有偏小</span>';
+        const sarcCalfTag = sarcCalf >= 11 ? '<span class="badge hi">SARC‑CalF 高風險 ≥11</span>' : (sarcCalf >=4 ? '<span class="badge mid">SARC‑CalF 中等風險</span>' : '<span class="badge ok">SARC‑CalF 風險低</span>');
+        calfLine = `
+          <div class="scoreline">SARC‑CalF：<strong>${sarcCalf}</strong> / 20 ${sarcCalfTag}</div>
+          <div class="tiny">（判斷門檻：男性 &lt;34cm、女性 &lt;33cm；目前量測：${calf.toFixed(1)} cm） ${calfJudgement}</div>
+        `;
+      }
+    }
+
+    result.style.display='block';
+    result.innerHTML = `
+      <div class="scoreline">SARC‑F：<strong>${sarcF}</strong> / 10 ${sarcFTag}</div>
+      ${calfLine}
+      <div class="hr"></div>
+      <div>建議：若為高風險，請安排握力、步速與肌量檢測，並與醫療人員討論阻力訓練與營養調整。</div>
+    `;
+
+    // 滾動到結果
+    result.scrollIntoView({behavior:'smooth', block:'start'});
+  });
+
+  resetBtn.addEventListener('click', () => {
+    setTimeout(()=>{
+      result.style.display='none';
+      result.innerHTML='';
+      updateCalcBtn();
+    }, 0);
+  });
+
+  printBtn.addEventListener('click', () => window.print());
+</script>
+</body>
+</html>
